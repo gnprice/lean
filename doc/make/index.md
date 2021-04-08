@@ -82,7 +82,7 @@ Pass these along with the `cmake ../../src` command.
 * `-D CMAKE_CXX_COMPILER=`
   Select the C++ compiler to use.
 
-* `-D LEAN_IGNORE_OLEAN_VERSION`
+* `-D CHECK_OLEAN_VERSION=off`
   The `.olean` files are tagged with the Lean version they were produced with.
   This means that by default, the core library has to be recompiled after e.g.
   every `git commit`. Use this option to avoid the version check. The `.olean`
