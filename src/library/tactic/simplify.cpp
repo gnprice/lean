@@ -23,6 +23,7 @@ Author: Daniel Selsam, Leonardo de Moura
 #include "library/normalize.h"
 #include "library/expr_lt.h"
 #include "library/locals.h"
+#include "library/explicit.h"
 #include "library/num.h"
 #include "library/idx_metavar.h"
 #include "library/util.h"
@@ -551,6 +552,18 @@ static bool should_trace_failure(expr const & e, simp_lemma const & sl) {
     return get_app_num_args(e) == get_app_num_args(p);
 }
 
+static expr norm_head(expr const & e) {
+    expr f = e;
+    while (true) {
+        if (is_as_atomic(f))
+            f = get_app_fn(get_as_atomic_arg(f));
+        else if (is_explicit(f))
+            f = get_explicit_arg(f);
+        else
+            return f;
+    }
+}
+
 static bool quick_reject(expr const & e, simp_lemma const & sl) {
     expr const & lhs = sl.get_lhs();
     if (!is_app(e) || !is_app(lhs)) {
@@ -564,8 +577,8 @@ static bool quick_reject(expr const & e, simp_lemma const & sl) {
     unsigned nargs = std::min(get_app_num_args(e), get_app_num_args(lhs));
     // std::cerr << "quick_reject: examining " << nargs << " args..." << std::endl;
     for (unsigned i = 0; i < nargs; ++i) {
-        expr const & earg_fn = get_app_fn(e_args[i]);
-        expr const & larg_fn = get_app_fn(l_args[i]);
+        expr const & earg_fn = norm_head(get_app_fn(e_args[i]));
+        expr const & larg_fn = norm_head(get_app_fn(l_args[i]));
 
         if (false) {
             if (!is_constant(larg_fn))
