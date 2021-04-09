@@ -67,6 +67,7 @@ namespace lean {
 static int count_sls_100;
 static int count_sls_800;
 static int max_sls;
+static int count_rejects;
 
 simp_config::simp_config():
     m_max_steps(LEAN_DEFAULT_SIMPLIFY_MAX_STEPS),
@@ -550,7 +551,43 @@ static bool should_trace_failure(expr const & e, simp_lemma const & sl) {
     return get_app_num_args(e) == get_app_num_args(p);
 }
 
+static bool quick_reject(expr const & e, simp_lemma const & sl) {
+    expr const & lhs = sl.get_lhs();
+    if (!is_app(e) || !is_app(lhs)) {
+        // std::cerr << "quick_reject: not apps" << std::endl;
+        return false;
+    }
+
+    buffer<expr> e_args, l_args;
+    get_app_args(e, e_args);
+    get_app_args(lhs, l_args);
+    unsigned nargs = std::min(get_app_num_args(e), get_app_num_args(lhs));
+    // std::cerr << "quick_reject: examining " << nargs << " args..." << std::endl;
+    for (unsigned i = 0; i < nargs; ++i) {
+        if (i == 1) {
+            if (!is_constant(l_args[i]))
+              std::cerr << "quick_reject: l_arg kind: " << l_args[i].kind() << std::endl;
+            else if (!is_constant(e_args[i]))
+              std::cerr << "quick_reject: e_arg kind: " << e_args[i].kind() << std::endl;
+            else if (const_name(l_args[i]) == const_name(e_args[i]))
+              std::cerr << "quick_reject: const names match: " << l_args[i] << std::endl;
+        }
+
+        if (is_constant(l_args[i]) && is_constant(e_args[i])
+          && const_name(l_args[i]) != const_name(e_args[i])) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 simp_result simplify_core_fn::rewrite_core(expr const & e, simp_lemma const & sl) {
+    if (quick_reject(e, sl)) {
+        count_rejects++;
+        return simp_result(e);
+    }
+
     tmp_type_context tmp_ctx(m_ctx, sl.get_num_umeta(), sl.get_num_emeta());
 
     if (!match(tmp_ctx, sl, e)) {
@@ -907,10 +944,10 @@ simp_result simplify_core_fn::simplify(expr const & e) {
 simp_result simplify_core_fn::operator()(name const & rel, expr const & e) {
     flet<name> _(m_rel, rel);
     std::cerr << "simplify: start" << std::endl;
-    count_sls_800 = count_sls_100 = 0;
+    count_sls_800 = count_sls_100 = count_rejects = 0;
     max_sls = 0;
     auto result = simplify(e);
-    std::cerr << "simplify: max_sls " << max_sls << "; "
+    std::cerr << "simplify: quick_rejects " << count_rejects << "; max_sls " << max_sls << "; "
        << count_sls_800 << "/" << count_sls_100 << " over 800/100" << std::endl;
     return result;
 }
