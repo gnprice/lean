@@ -64,6 +64,10 @@ Author: Daniel Selsam, Leonardo de Moura
 
 namespace lean {
 
+static int count_sls_100;
+static int count_sls_800;
+static int max_sls;
+
 simp_config::simp_config():
     m_max_steps(LEAN_DEFAULT_SIMPLIFY_MAX_STEPS),
     m_contextual(LEAN_DEFAULT_SIMPLIFY_CONTEXTUAL),
@@ -501,6 +505,14 @@ simp_result simplify_core_fn::rewrite(expr const & e) {
         return simp_result(e);
     }
 
+    unsigned len = length(*srs);
+    if (len >= 800)
+        count_sls_800++;
+    if (len >= 100)
+        count_sls_100++;
+    if (len >= max_sls)
+        max_sls = len;
+
     for (simp_lemma const & lemma : *srs) {
         try {
             simp_result r = rewrite(e, lemma);
@@ -894,7 +906,13 @@ simp_result simplify_core_fn::simplify(expr const & e) {
 
 simp_result simplify_core_fn::operator()(name const & rel, expr const & e) {
     flet<name> _(m_rel, rel);
-    return simplify(e);
+    std::cerr << "simplify: start" << std::endl;
+    count_sls_800 = count_sls_100 = 0;
+    max_sls = 0;
+    auto result = simplify(e);
+    std::cerr << "simplify: max_sls " << max_sls << "; "
+       << count_sls_800 << "/" << count_sls_100 << " over 800/100" << std::endl;
+    return result;
 }
 
 static expr mk_mpr(type_context_old & ctx, name const & rel, expr const & h1, expr const & h2) {
