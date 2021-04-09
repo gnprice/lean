@@ -580,13 +580,15 @@ static bool quick_reject(expr const & e, simp_lemma const & sl) {
         expr const & earg_fn = norm_head(get_app_fn(e_args[i]));
         expr const & larg_fn = norm_head(get_app_fn(l_args[i]));
 
-        if (false) {
+        if (true) {
             if (!is_constant(larg_fn))
               std::cerr << "quick_reject: l_arg kind: " << larg_fn.kind() << std::endl;
             else if (!is_constant(earg_fn))
               std::cerr << "quick_reject: e_arg kind: " << earg_fn.kind() << std::endl;
             else if (const_name(larg_fn) == const_name(earg_fn))
               std::cerr << "quick_reject: const names match: " << const_name(larg_fn) << std::endl;
+            else
+              return true;
         }
 
         if (is_constant(larg_fn) && is_constant(earg_fn)
