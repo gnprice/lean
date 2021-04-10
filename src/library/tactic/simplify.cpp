@@ -566,8 +566,11 @@ static expr norm_head(expr const & e) {
 
 static bool quick_reject(expr const & e, simp_lemma const & sl) {
     expr const & lhs = sl.get_lhs();
+    std::cerr << "quick_reject: id   " << sl.get_id() << std::endl;
+    std::cerr << "quick_reject: lhs  " << lhs << std::endl;
+    // std::cerr << "quick_reject: expr " << e << std::endl;
     if (!is_app(e) || !is_app(lhs)) {
-        // std::cerr << "quick_reject: not apps" << std::endl;
+        std::cerr << "quick_reject: not apps" << std::endl;
         return false;
     }
 
@@ -575,20 +578,31 @@ static bool quick_reject(expr const & e, simp_lemma const & sl) {
     get_app_args(e, e_args);
     get_app_args(lhs, l_args);
     unsigned nargs = std::min(get_app_num_args(e), get_app_num_args(lhs));
-    // std::cerr << "quick_reject: examining " << nargs << " args..." << std::endl;
+    for (unsigned i = 0; i < nargs; ++i) {
+        expr const & earg_fn = norm_head(get_app_fn(e_args[i]));
+        expr const & larg_fn = norm_head(get_app_fn(l_args[i]));
+
+        std::cerr << "  arg " << i << " l: fn " << larg_fn << "\n";
+        std::cerr << "  arg " << i << " l:     " << l_args[i] << "\n";
+        std::cerr << "  arg " << i << " e: fn " << earg_fn << "\n";
+        // std::cerr << "  arg " << i << " e:     " << e_args[i] << "\n";
+    }
+
     for (unsigned i = 0; i < nargs; ++i) {
         expr const & earg_fn = norm_head(get_app_fn(e_args[i]));
         expr const & larg_fn = norm_head(get_app_fn(l_args[i]));
 
         if (true) {
             if (!is_constant(larg_fn))
-              std::cerr << "quick_reject: l_arg kind: " << larg_fn.kind() << std::endl;
+              std::cerr << "quick_reject:   " << i << ": l_arg kind: " << larg_fn.kind() << std::endl;
             else if (!is_constant(earg_fn))
-              std::cerr << "quick_reject: e_arg kind: " << earg_fn.kind() << std::endl;
+              std::cerr << "quick_reject:   " << i << ": e_arg kind: " << earg_fn.kind() << std::endl;
             else if (const_name(larg_fn) == const_name(earg_fn))
-              std::cerr << "quick_reject: const names match: " << const_name(larg_fn) << std::endl;
-            else
+              std::cerr << "quick_reject:   " << i << ": const names match: " << const_name(larg_fn) << std::endl;
+            else {
+              std::cerr << "quick_reject: " << i << ": reject: " << const_name(larg_fn) << " vs " << const_name(earg_fn) << std::endl;
               return true;
+            }
         }
 
         if (is_constant(larg_fn) && is_constant(earg_fn)
@@ -597,6 +611,7 @@ static bool quick_reject(expr const & e, simp_lemma const & sl) {
         }
     }
 
+    std::cerr << "quick_reject: seems ok" << std::endl;
     return false;
 }
 
